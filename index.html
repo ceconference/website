@@ -83,46 +83,50 @@
   if (!ring) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const CX = 416, CY = 433.6;            // centre of the arrow ring in SVG units
-  const PERIOD = 2.4, AMP = 28;          // seconds per pulse, max pull in SVG units
-  const REACH = 300;                     // how far the cursor's influence spreads (SVG units)
-  const BOOST = 1.6;                     // extra pulse depth next to the cursor (1.6 = 2.6x)
-  const BEND = 0.65;                     // how much nearby arrows aim their pulse at the cursor
+  const PERIOD = 2.4, AMP = 28;          // breathing: seconds per pulse, depth in SVG units
+  const FIELD = 620;                     // radius of the reactive field around the emblem
+  const REACH = 320;                     // how far the pull towards the cursor spreads
+  const PULL = 46;                       // max pull of the nearest arrows towards the cursor
   const svg = ring.ownerSVGElement;
   const arrows = [...ring.querySelectorAll('path')].map(el => {
     const b = el.getBBox();
     const x = b.x + b.width / 2, y = b.y + b.height / 2;
     const dx = CX - x, dy = CY - y, len = Math.hypot(dx, dy) || 1;
-    return { el, x, y, ux: dx / len, uy: dy / len, w: 0, vx: dx / len, vy: dy / len };
+    return { el, x, y, ux: dx / len, uy: dy / len, base: Math.atan2(dy, dx), rot: 0, px: 0, py: 0 };
   });
-  let mouse = null, lastMove = -1e9;
+  let mouse = null, hover = 0;
   window.addEventListener('pointermove', e => {
     if (e.pointerType === 'touch') return;
     const m = svg.getScreenCTM();
     if (!m) return;
     const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
-    mouse = { x: pt.x, y: pt.y }; lastMove = performance.now();
+    mouse = { x: pt.x, y: pt.y };
   }, { passive: true });
   document.addEventListener('pointerleave', () => { mouse = null; });
+  const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
   const tick = now => {
-    // one shared beat for every arrow – the cursor never shifts the timing
+    const inField = mouse && Math.hypot(mouse.x - CX, mouse.y - CY) < FIELD;
+    hover += ((inField ? 1 : 0) - hover) * 0.08;     // ~0.5 s cross-fade between the two states
+    // state 1 – breathing, shared beat; fades out while the cursor is in the field
     const p = (now / 1000 / PERIOD) % 1;
-    const beat = p < 0.25 ? Math.sin(p / 0.25 * Math.PI / 2)          // quick pull in
-                          : Math.cos((p - 0.25) / 0.75 * Math.PI / 2); // slow ease back out
-    const active = mouse && now - lastMove < 2500;   // influence fades when the mouse rests or leaves
+    const beat = p < 0.25 ? Math.sin(p / 0.25 * Math.PI / 2) : Math.cos((p - 0.25) / 0.75 * Math.PI / 2);
+    const breath = AMP * Math.max(0, beat) * (1 - hover);
     for (const a of arrows) {
-      let w = 0, tx = a.ux, ty = a.uy;
-      if (active) {
+      // state 2 – every arrow turns its tip towards the cursor, the nearest ones lean in
+      let rot = 0, px = 0, py = 0;
+      if (inField) {
         const dx = mouse.x - a.x, dy = mouse.y - a.y, d = Math.hypot(dx, dy) || 1;
-        w = Math.exp(-((d / REACH) ** 2));             // 1 next to the cursor, ~0 far away
-        // aim the pulse partly towards the cursor
-        tx = a.ux * (1 - BEND * w) + (dx / d) * BEND * w;
-        ty = a.uy * (1 - BEND * w) + (dy / d) * BEND * w;
-        const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
+        rot = wrap(Math.atan2(dy, dx) - a.base);
+        const w = Math.exp(-((d / REACH) ** 2));
+        const pull = Math.min(PULL * w, d * 0.5);
+        px = dx / d * pull; py = dy / d * pull;
       }
-      a.w += (w - a.w) * 0.1;                          // smooth so nothing jumps
-      a.vx += (tx - a.vx) * 0.1; a.vy += (ty - a.vy) * 0.1;
-      const d = AMP * (1 + BOOST * a.w) * Math.max(0, beat);
-      a.el.setAttribute('transform', `translate(${(a.vx * d).toFixed(2)} ${(a.vy * d).toFixed(2)})`);
+      a.rot += wrap(rot - a.rot) * 0.12;
+      a.px += (px - a.px) * 0.12; a.py += (py - a.py) * 0.12;
+      const tx = a.ux * breath + a.px, ty = a.uy * breath + a.py;
+      const deg = a.rot * 180 / Math.PI;
+      a.el.setAttribute('transform',
+        `translate(${tx.toFixed(2)} ${ty.toFixed(2)}) rotate(${deg.toFixed(2)} ${a.x.toFixed(1)} ${a.y.toFixed(1)})`);
     }
     requestAnimationFrame(tick);
   };
