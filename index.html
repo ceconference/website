@@ -81,48 +81,46 @@
 (() => {
   const ring = document.getElementById('ring');
   if (!ring) return;
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce) return;
-  const CX = 416, CY = 433.6;           // centre of the arrow ring in SVG units
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const CX = 416, CY = 433.6;            // centre of the arrow ring in SVG units
   const PERIOD = 2.4, AMP = 28;          // seconds per pulse, max pull in SVG units
+  const REACH = 380;                     // how far the cursor's influence spreads (SVG units)
+  const LEAD = 0.32;                     // max phase shift for arrows next to the cursor
+  const svg = ring.ownerSVGElement;
   const arrows = [...ring.querySelectorAll('path')].map(el => {
     const b = el.getBBox();
-    const dx = CX - (b.x + b.width / 2), dy = CY - (b.y + b.height / 2);
-    const len = Math.hypot(dx, dy) || 1;
-    const ang = Math.atan2(-dy, -dx);                              // position around the ring
-    return { el, ux: dx / len, uy: dy / len, phase: 0 };
+    const x = b.x + b.width / 2, y = b.y + b.height / 2;
+    const dx = CX - x, dy = CY - y, len = Math.hypot(dx, dy) || 1;
+    return { el, x, y, ux: dx / len, uy: dy / len, phase: 0, boost: 0 };
   });
-  let cur = 0, target = 0, last = null, idle = true, lastMove = 0;
-  const centre = () => {
-    const r = ring.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-  };
+  let mouse = null, lastMove = -1e9;
   window.addEventListener('pointermove', e => {
     if (e.pointerType === 'touch') return;
-    const c = centre();
-    const a = Math.atan2(e.clientY - c.y, e.clientX - c.x) * 180 / Math.PI;
-    if (last !== null) {
-      let d = a - last;
-      if (d > 180) d -= 360; else if (d < -180) d += 360;
-      target += d;                       // cumulative, so it keeps spinning round
-    }
-    last = a; idle = false; lastMove = performance.now();
+    const m = svg.getScreenCTM();
+    if (!m) return;
+    const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+    mouse = { x: pt.x, y: pt.y }; lastMove = performance.now();
   }, { passive: true });
-  document.addEventListener('pointerleave', () => { last = null; });
+  document.addEventListener('pointerleave', () => { mouse = null; });
   const tick = now => {
-    if (now - lastMove > 2500) idle = true;
-    if (idle) target += 0.08;            // gentle drift when the mouse is still / on touch
-    cur += (target - cur) * 0.08;
-    ring.setAttribute('transform', `rotate(${cur.toFixed(2)} ${CX} ${CY})`);
-    // pulse: each arrow pulls toward the centre and eases back, staggered around the ring
+    // the cursor's pull fades out when it stops moving or leaves the page
+    const active = mouse && now - lastMove < 2500;
     const t = now / 1000;
-    arrows.forEach(a => {
-      const p = ((t / PERIOD + a.phase) % 1 + 1) % 1;            // 0..1 within the cycle
-      const s = p < 0.25 ? Math.sin(p / 0.25 * Math.PI / 2)       // quick pull in
+    for (const a of arrows) {
+      let w = 0;
+      if (active) {
+        const d = Math.hypot(mouse.x - a.x, mouse.y - a.y);
+        w = Math.exp(-((d / REACH) ** 2));                  // 1 next to the cursor, ~0 far away
+      }
+      // arrows near the cursor run ahead of the shared beat and pulse harder
+      a.phase += (w * LEAD - a.phase) * 0.06;
+      a.boost += (w - a.boost) * 0.08;
+      const p = ((t / PERIOD + a.phase) % 1 + 1) % 1;     // 0..1 within the cycle
+      const s = p < 0.25 ? Math.sin(p / 0.25 * Math.PI / 2)        // quick pull in
                          : Math.cos((p - 0.25) / 0.75 * Math.PI / 2); // slow ease back out
-      const d = AMP * Math.max(0, s);
+      const d = AMP * (1 + 0.6 * a.boost) * Math.max(0, s);
       a.el.setAttribute('transform', `translate(${(a.ux * d).toFixed(2)} ${(a.uy * d).toFixed(2)})`);
-    });
+    }
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
