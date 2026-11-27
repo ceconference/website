@@ -28,6 +28,8 @@
   input{font:inherit;font-size:16px;color:var(--off);background:rgba(255,255,255,.06);border:1.5px solid rgba(194,197,255,.35);
     border-radius:12px;padding:12px 14px;outline:none;transition:border-color .15s}
   input:focus{border-color:var(--lime)}
+  label.check{display:flex;align-items:center;gap:10px;color:var(--off);font-size:15px;cursor:pointer}
+  label.check input{width:20px;height:20px;padding:0;accent-color:var(--lime);cursor:pointer}
   input::placeholder{color:rgba(194,197,255,.5)}
   .card{background:#fff;border-radius:20px;padding:28px;color:#000066;overflow-x:auto}
   .card h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#55576b;margin-bottom:18px;font-weight:700}
@@ -57,6 +59,8 @@
       <label>Role in the team
         <input id="role" placeholder="Director">
       </label>
+      <label class="check"><input type="checkbox" id="student" checked> Show my studies in the signature</label>
+      <div id="studyFields" style="display:grid;gap:14px">
       <label>Study programme <small>(optional)</small>
         <input id="course" placeholder="Media & Communications Student">
       </label>
@@ -69,6 +73,7 @@
           <option value="Imperial College London">
         </datalist>
       </label>
+      </div>
       <label>Phone <small>(optional)</small>
         <input id="phone" placeholder="+44 7351 825 201" autocomplete="tel">
       </label>
@@ -114,7 +119,7 @@ function build(){
   const c = anyOwn ? course : esc($("course").placeholder);
   const u = anyOwn ? uni : esc($("uni").placeholder);
   const p = anyOwn ? phone : $("phone").placeholder;
-  const study=[c,u].filter(Boolean).join("<br>");
+  const study=$("student").checked?[c,u].filter(Boolean).join("<br>"):"";
   const tel=p.replace(/[^\d+]/g,"");
   const S="font-size:13px;line-height:18px;";
   return `<div><br><br></div>
@@ -134,8 +139,10 @@ ${p?`<div style="${S}padding-top:6px;"><a href="tel:${tel}" style="color:#55576b
 }
 
 function render(){
+  $("studyFields").style.display=$("student").checked?"grid":"none";
   $("out").innerHTML=build();
-  try{localStorage.setItem(KEY,JSON.stringify(Object.fromEntries(ids.map(i=>[i,$(i).value]))));}catch(e){}
+  try{const d=Object.fromEntries(ids.map(i=>[i,$(i).value]));d.student=$("student").checked;
+    localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}
 }
 
 function flash(msg){$("status").textContent=msg;clearTimeout(flash.t);flash.t=setTimeout(()=>$("status").textContent="",4000);}
@@ -161,8 +168,10 @@ async function copyHtml(){
   catch(e){flash("Copy failed. Try another browser.");}
 }
 
-try{const saved=JSON.parse(localStorage.getItem(KEY)||"{}");ids.forEach(i=>{if(saved[i])$(i).value=saved[i];});}catch(e){}
+try{const saved=JSON.parse(localStorage.getItem(KEY)||"{}");ids.forEach(i=>{if(saved[i])$(i).value=saved[i];});
+  if(saved.student===false)$("student").checked=false;}catch(e){}
 ids.forEach(i=>$(i).addEventListener("input",render));
+$("student").addEventListener("change",render);
 $("copy").addEventListener("click",copyRich);
 $("copyhtml").addEventListener("click",copyHtml);
 render();
