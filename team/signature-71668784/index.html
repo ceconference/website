@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>CEC · E-mail signature generator</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23000066'/><path d='M9 16h12m-5-6 6 6-6 6' stroke='%23D4FF00' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#000066;--deep:#00003D;--bright:#3B3BF5;--soft:#C2C5FF;--lime:#D4FF00;--off:#F5F5F0}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:radial-gradient(ellipse at 80% 0%,#0a0a8a 0%,var(--navy) 45%,var(--deep) 100%);
+    color:var(--off);font-family:"Hanken Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:clamp(24px,5vw,64px)}
+  .wrap{max-width:1080px;margin:0 auto}
+  .tag{display:inline-block;background:var(--lime);color:var(--navy);font-weight:700;font-size:12px;
+    letter-spacing:.12em;text-transform:uppercase;padding:7px 12px;border-radius:999px;margin-bottom:20px}
+  h1{font-size:clamp(30px,4.5vw,48px);line-height:1.05;font-weight:700;letter-spacing:-.02em}
+  .intro{color:var(--soft);margin-top:12px;max-width:640px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:28px;margin-top:36px;align-items:start}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  form{display:grid;gap:14px}
+  label{display:grid;gap:6px;font-size:14px;font-weight:500;color:var(--soft)}
+  label small{font-weight:400;opacity:.8}
+  input{font:inherit;font-size:16px;color:var(--off);background:rgba(255,255,255,.06);border:1.5px solid rgba(194,197,255,.35);
+    border-radius:12px;padding:12px 14px;outline:none;transition:border-color .15s}
+  input:focus{border-color:var(--lime)}
+  input::placeholder{color:rgba(194,197,255,.5)}
+  .card{background:#fff;border-radius:20px;padding:28px;color:#000066;overflow-x:auto}
+  .card h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#55576b;margin-bottom:18px;font-weight:700}
+  .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+  button{font:inherit;font-weight:700;font-size:15px;border:0;cursor:pointer;padding:13px 20px;border-radius:999px;transition:transform .15s}
+  button:hover{transform:translateY(-2px)}
+  .primary{background:var(--lime);color:var(--navy)}
+  .ghost{background:transparent;color:var(--navy);border:2px solid var(--soft)}
+  .status{margin-top:12px;font-size:14px;color:#2a7a2a;min-height:20px}
+  .steps{margin-top:36px;color:var(--soft);line-height:1.6;font-size:15px}
+  .steps h3{color:var(--off);font-size:18px;margin-bottom:8px}
+  .steps ol{padding-left:20px}
+  .steps b{color:var(--off)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="tag">Team only</span>
+  <h1>E-mail signature generator</h1>
+  <p class="intro">Fill in your details, copy the signature and paste it into your e-mail settings. Please don't share this link outside the CEC team.</p>
+
+  <div class="grid">
+    <form id="f" autocomplete="on" onsubmit="return false">
+      <label>Full name
+        <input id="name" placeholder="Oldřich Neumann" autocomplete="name">
+      </label>
+      <label>Role in the team
+        <input id="role" placeholder="Director">
+      </label>
+      <label>Study programme <small>(optional)</small>
+        <input id="course" placeholder="Media & Communications Student">
+      </label>
+      <label>University <small>(optional)</small>
+        <input id="uni" placeholder="London School of Economics and Political Science" list="unis">
+        <datalist id="unis">
+          <option value="London School of Economics and Political Science">
+          <option value="King's College London">
+          <option value="University College London">
+          <option value="Imperial College London">
+        </datalist>
+      </label>
+      <label>Phone <small>(optional)</small>
+        <input id="phone" placeholder="+44 7351 825 201" autocomplete="tel">
+      </label>
+    </form>
+
+    <div class="card">
+      <h2>Preview</h2>
+      <div id="out"></div>
+      <div class="actions">
+        <button class="primary" id="copy" type="button">Copy signature</button>
+        <button class="ghost" id="copyhtml" type="button">Copy HTML code</button>
+      </div>
+      <div class="status" id="status" role="status"></div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <h3>How to add it</h3>
+    <ol>
+      <li><b>Gmail:</b> Settings (gear) → See all settings → General → Signature → Create new → paste → Save changes at the bottom of the page.</li>
+      <li><b>Outlook:</b> Settings → Mail → Compose and reply (or Signatures) → New signature → paste → Save.</li>
+      <li><b>Apple Mail:</b> Settings → Signatures → + → untick "Always match my default message font" → paste.</li>
+    </ol>
+    <p style="margin-top:10px">Send yourself a test e-mail to check it. "Copy HTML code" is only for clients that ask for the code itself.</p>
+  </div>
+</div>
+
+<script>
+const LOGO = "https://ceconference.uk/email/cec-mark.png";
+const ids = ["name","role","course","uni","phone"];
+const KEY = "cec-signature";
+const $ = id => document.getElementById(id);
+
+function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function val(id){const v=$(id).value.trim();return v;}
+function fallback(id){return val(id)||$(id).placeholder;}
+
+function build(){
+  const name=esc(fallback("name")), role=esc(fallback("role"));
+  const course=esc(val("course")), uni=esc(val("uni")), phone=val("phone");
+  const anyOwn = ids.some(i=>val(i));
+  // Before anything is typed, preview the example from the placeholders.
+  const c = anyOwn ? course : esc($("course").placeholder);
+  const u = anyOwn ? uni : esc($("uni").placeholder);
+  const p = anyOwn ? phone : $("phone").placeholder;
+  const study=[c,u].filter(Boolean).join("<br>");
+  const tel=p.replace(/[^\d+]/g,"");
+  const S="font-size:13px;line-height:18px;";
+  return `<div><br><br></div>
+<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:Helvetica,Arial,sans-serif;color:#000066;">
+<tr>
+<td valign="top" style="padding:2px 16px 0 0;"><a href="https://ceconference.uk" style="text-decoration:none;"><img src="${LOGO}" width="72" height="72" alt="Central European Conference" style="display:block;border:0;width:72px;height:72px;"></a></td>
+<td valign="top" style="padding:0 0 0 16px;border-left:3px solid #D4FF00;">
+<div style="font-size:16px;line-height:20px;font-weight:bold;color:#000066;">${name}</div>
+<div style="font-size:14px;line-height:19px;color:#000066;">${role}</div>
+<div style="font-size:14px;line-height:19px;font-weight:bold;color:#000066;">Central European Conference</div>
+${study?`<div style="${S}color:#55576b;padding-top:6px;">${study}</div>`:""}
+${p?`<div style="${S}padding-top:6px;"><a href="tel:${tel}" style="color:#55576b;text-decoration:none;">${esc(p)}</a></div>`:""}
+<div style="${S}padding-top:${p?2:6}px;"><a href="https://ceconference.uk" style="color:#3B3BF5;text-decoration:none;font-weight:bold;">ceconference.uk</a><span style="color:#C2C5FF;">&nbsp;|&nbsp;</span><a href="https://instagram.com/ce_conference" style="color:#3B3BF5;text-decoration:none;font-weight:bold;">@ce_conference</a></div>
+</td>
+</tr>
+</table>`;
+}
+
+function render(){
+  $("out").innerHTML=build();
+  try{localStorage.setItem(KEY,JSON.stringify(Object.fromEntries(ids.map(i=>[i,$(i).value]))));}catch(e){}
+}
+
+function flash(msg){$("status").textContent=msg;clearTimeout(flash.t);flash.t=setTimeout(()=>$("status").textContent="",4000);}
+
+async function copyRich(){
+  const html=build();
+  const text=$("out").innerText;
+  try{
+    await navigator.clipboard.write([new ClipboardItem({
+      "text/html":new Blob([html],{type:"text/html"}),
+      "text/plain":new Blob([text],{type:"text/plain"})})]);
+    flash("Copied. Now paste it into your e-mail signature settings.");
+  }catch(e){
+    // Fallback: select the preview and copy it as rich text.
+    const r=document.createRange();r.selectNodeContents($("out"));
+    const s=getSelection();s.removeAllRanges();s.addRange(r);
+    const ok=document.execCommand("copy");s.removeAllRanges();
+    flash(ok?"Copied. Now paste it into your e-mail signature settings.":"Copy failed. Select the preview with your mouse and press Ctrl/Cmd+C.");
+  }
+}
+async function copyHtml(){
+  try{await navigator.clipboard.writeText(build());flash("HTML code copied.");}
+  catch(e){flash("Copy failed. Try another browser.");}
+}
+
+try{const saved=JSON.parse(localStorage.getItem(KEY)||"{}");ids.forEach(i=>{if(saved[i])$(i).value=saved[i];});}catch(e){}
+ids.forEach(i=>$(i).addEventListener("input",render));
+$("copy").addEventListener("click",copyRich);
+$("copyhtml").addEventListener("click",copyHtml);
+render();
+</script>
+</body>
+</html>
